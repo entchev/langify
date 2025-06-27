@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Albanian Learning Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🇦🇱</text></svg>">
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hover-scale {
+            transition: transform 0.2s ease;
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
+        .card-flip {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .card-flipped {
+            transform: rotateY(180deg);
+        }
+        .hidden {
+            display: none;
+        }
+        .game-card {
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .drag-item {
+            cursor: move;
+            transition: all 0.2s ease;
+        }
+        .drag-item:hover {
+            transform: scale(1.02);
+        }
+        .drop-zone {
+            transition: all 0.2s ease;
+        }
+        .drop-zone.drag-over {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+        }
+        .mobile-nav {
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .desktop-nav {
+                display: none;
+            }
+            .mobile-nav {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-gradient-to-br from-red-50 to-gray-100">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-md sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <button onclick="showSection('home')" class="flex items-center space-x-2 text-red-700 font-bold text-xl">
+                        <div class="w-8 h-8 bg-red-600 rounded flex items-center justify-center text-white text-sm">AL</div>
+                        <span>Albanian Learning</span>
+                    </button>
+                    
+                    <div class="desktop-nav hidden md:flex space-x-6">
+                        <button onclick="showSection('alphabet')" class="nav-btn px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-red-700 hover:bg-red-50">Alphabet</button>
+                        <button onclick="showSection('vocabulary')" class="nav-btn px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-red-700 hover:bg-red-50">Vocabulary</button>
+                        <button onclick="showSection('games')" class="nav-btn px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-red-700 hover:bg-red-50">Games</button>
+                        <button onclick="showSection('quiz')" class="nav-btn px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-red-700 hover:bg-red-50">Quiz</button>
+                        <button onclick="showSection('progress')" class="nav-btn px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:text-red-700 hover:bg-red-50">Progress</button>
+                    </div>
+
+                    <div class="mobile-nav md:hidden">
+                        <select onchange="showSection(this.value)" class="text-sm border rounded px-2 py-1">
+                            <option value="home">Home</option>
+                            <option value="alphabet">Alphabet</option>
+                            <option value="vocabulary">Vocabulary</option>
+                            <option value="games">Games</option>
+                            <option value="quiz">Quiz</option>
+                            <option value="progress">Progress</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" id="main-content">
+            <!-- Content will be dynamically inserted here -->
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p class="text-gray-300">🇦🇱 Mësoni shqip me gëzim! (Learn Albanian with joy!)</p>
+                <p class="text-sm text-gray-400 mt-2">Your comprehensive Albanian language learning platform</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Global variables
+        let currentSection = 'home';
+        let gameScore = 0;
+        let memoryCards = [];
+        let flippedCards = [];
+        let dragDropGame = [];
+        let currentQuiz = 0;
+        let selectedAnswer = null;
+        let showResult = false;
+        let quizScore = 0;
+
+        // Albanian alphabet data
+        const albanianAlphabet = [
+            { letter: 'A', pronunciation: '[a]', example: 'ari (gold)', audio: 'ah' },
+            { letter: 'B', pronunciation: '[b]', example: 'bukë (bread)', audio: 'beh' },
+            { letter: 'C', pronunciation: '[ts]', example: 'cila (which)', audio: 'tseh' },
+            { letter: 'Ç', pronunciation: '[tʃ]', example: 'çka (what)', audio: 'chah' },
+            { letter: 'D', pronunciation: '[d]', example: 'ditë (day)', audio: 'deh' },
+            { letter: 'Dh', pronunciation: '[ð]', example: 'dhomë (room)', audio: 'theh' },
+            { letter: 'E', pronunciation: '[ɛ]', example: 'emër (name)', audio: 'eh' },
+            { letter: 'Ë', pronunciation: '[ə]', example: 'ëmbël (sweet)', audio: 'uh' },
+            { letter: 'F', pronunciation: '[f]', example: 'familje (family)', audio: 'feh' },
+            { letter: 'G', pronunciation: '[g]', example: 'gjuhë (language)', audio: 'geh' },
+            { letter: 'Gj', pronunciation: '[ɟ]', example: 'gjithë (all)', audio: 'gyeh' },
+            { letter: 'H', pronunciation: '[h]', example: 'hënë (moon)', audio: 'heh' },
+            { letter: 'I', pronunciation: '[i]', example: 'im (mine)', audio: 'ee' },
+            { letter: 'J', pronunciation: '[j]', example: 'ju (you)', audio: 'yoo' },
+            { letter: 'K', pronunciation: '[k]', example: 'kam (I have)', audio: 'kah' },
+            { letter: 'L', pronunciation: '[l]', example: 'lule (flower)', audio: 'leh' },
+            { letter: 'Ll', pronunciation: '[ɫ]', example: 'lloj (type)', audio: 'lyoh' },
+            { letter: 'M', pronunciation: '[m]', example: 'më (me)', audio: 'meh' },
+            { letter: 'N', pronunciation: '[n]', example: 'nuk (not)', audio: 'neh' },
+            { letter: 'Nj', pronunciation: '[ɲ]', example: 'njeri (person)', audio: 'nyeh' },
+            { letter: 'O', pronunciation: '[ɔ]', example: 'op (shoes)', audio: 'oh' },
+            { letter: 'P', pronunciation: '[p]', example: 'para (money)', audio: 'peh' },
+            { letter: 'Q', pronunciation: '[c]', example: 'qen (dog)', audio: 'cheh' },
+            { letter: 'R', pronunciation: '[ɾ]', example: 'red (row)', audio: 'reh' },
+            { letter: 'Rr', pronunciation: '[r]', example: 'rrugë (road)', audio: 'rreh' },
+            { letter: 'S', pronunciation: '[s]', example: 'si (how)', audio: 'seh' },
+            { letter: 'Sh', pronunciation: '[ʃ]', example: 'shkollë (school)', audio: 'sheh' },
+            { letter: 'T', pronunciation: '[t]', example: 'top (ball)', audio: 'teh' },
+            { letter: 'Th', pronunciation: '[θ]', example: 'thikë (knife)', audio: 'theh' },
+            { letter: 'U', pronunciation: '[u]', example: 'ujë (water)', audio: 'oo' },
+            { letter: 'V', pronunciation: '[v]', example: 'vesh (ear)', audio: 'veh' },
+            { letter: 'X', pronunciation: '[dz]', example: 'xhep (pocket)', audio: 'dzeh' },
+            { letter: 'Xh', pronunciation: '[dʒ]', example: 'xhungël (jungle)', audio: 'jeh' },
+            { letter: 'Y', pronunciation: '[y]', example: 'yll (star)', audio: 'eel' },
+            { letter: 'Z', pronunciation: '[z]', example: 'zë (voice)', audio: 'zeh' },
+            { letter: 'Zh', pronunciation: '[ʒ]', example: 'zhurmë (noise)', audio: 'zheh' }
+        ];
+
+        // Vocabulary sets
+        const vocabularySets = {
+            family: [
+                { albanian: 'familje', english: 'family', pronunciation: 'fah-MEEL-yeh' },
+                { albanian: 'prind', english: 'parent', pronunciation: 'preend' },
+                { albanian: 'baba', english: 'father', pronunciation: 'BAH-bah' },
+                { albanian: 'mama', english: 'mother', pronunciation: 'MAH-mah' },
+                { albanian: 'vëlla', english: 'brother', pronunciation: 'VUHL-lah' },
+                { albanian: 'motër', english: 'sister', pronunciation: 'MOH-tuhr' },
+                { albanian: 'gjysh', english: 'grandfather', pronunciation: 'gyeesh' },
+                { albanian: 'gjyshe', english: 'grandmother', pronunciation: 'GYEE-sheh' },
+                { albanian: 'djalë', english: 'son', pronunciation: 'DYAH-luh' },
+                { albanian: 'vajzë', english: 'daughter', pronunciation: 'VAH-ee-zuh' }
+            ],
+            greetings: [
+                { albanian: 'përshëndetje', english: 'hello', pronunciation: 'puhr-shuhn-DET-yeh' },
+                { albanian: 'mirëmëngjes', english: 'good morning', pronunciation: 'MEE-ruh-muhn-gyes' },
+                { albanian: 'mirëdita', english: 'good day', pronunciation: 'MEE-ruh-DEE-tah' },
+                { albanian: 'mirëmbrëma', english: 'good evening', pronunciation: 'MEE-ruh-BRUH-mah' },
+                { albanian: 'natën e mirë', english: 'good night', pronunciation: 'NAH-tuhn eh MEE-ruh' },
+                { albanian: 'mirupafshim', english: 'goodbye', pronunciation: 'MEE-roo-pahf-sheem' },
+                { albanian: 'faleminderit', english: 'thank you', pronunciation: 'fah-leh-meen-DEH-reet' },
+                { albanian: 'të lutem', english: 'please', pronunciation: 'tuh LOO-tem' },
+                { albanian: 'më falni', english: 'excuse me', pronunciation: 'muh FAHL-nee' }
+            ],
+            colors: [
+                { albanian: 'ngjyrë', english: 'color', pronunciation: 'NGYEE-ruh' },
+                { albanian: 'kuq', english: 'red', pronunciation: 'kooch' },
+                { albanian: 'blu', english: 'blue', pronunciation: 'bloo' },
+                { albanian: 'gjelbër', english: 'green', pronunciation: 'GYEL-buhr' },
+                { albanian: 'verdhë', english: 'yellow', pronunciation: 'VER-thuh' },
+                { albanian: 'portokalli', english: 'orange', pronunciation: 'por-toh-KAHL-lee' },
+                { albanian: 'vjollcë', english: 'purple', pronunciation: 'VYOHL-tsuh' },
+                { albanian: 'rozë', english: 'pink', pronunciation: 'ROH-zuh' },
+                { albanian: 'bardhë', english: 'white', pronunciation: 'BAHR-thuh' },
+                { albanian: 'zezë', english: 'black', pronunciation: 'ZEH-zuh' }
+            ],
+            numbers: [
+                { albanian: 'zero', english: 'zero', pronunciation: 'ZEH-roh' },
+                { albanian: 'një', english: 'one', pronunciation: 'nyuh' },
+                { albanian: 'dy', english: 'two', pronunciation: 'dee' },
+                { albanian: 'tre', english: 'three', pronunciation: 'treh' },
+                { albanian: 'katër', english: 'four', pronunciation: 'KAH-tuhr' },
+                { albanian: 'pesë', english: 'five', pronunciation: 'PEH-suh' },
+                { albanian: 'gjashtë', english: 'six', pronunciation: 'GYAHSH-tuh' },
+                { albanian: 'shtatë', english: 'seven', pronunciation: 'SHTAH-tuh' },
+                { albanian: 'tetë', english: 'eight', pronunciation: 'TEH-tuh' },
+                { albanian: 'nëntë', english: 'nine', pronunciation: 'NUHN-tuh' },
+                { albanian: 'dhjetë', english: 'ten', pronunciation: 'THYEH-tuh' }
+            ]
+        };
+
+        // Quiz questions
+        const quizQuestions = [
+            { question: "What does 'familje' mean in English?", options: ['family', 'friend', 'house', 'food'], correct: 0 },
+            { question: "How do you say 'hello' in Albanian?", options: ['mirupafshim', 'faleminderit', 'përshëndetje', 'natën e mirë'], correct: 2 },
+            { question: "What color is 'kuq' in Albanian?", options: ['blue', 'green', 'yellow', 'red'], correct: 3 },
+            { question: "How do you say 'thank you' in Albanian?", options: ['faleminderit', 'përshëndetje', 'mirupafshim', 'më falni'], correct: 0 },
+            { question: "What does 'dy' mean in English?", options: ['one', 'two', 'three', 'four'], correct: 1 },
+            { question: "How do you say 'mother' in Albanian?", options: ['baba', 'mama', 'motër', 'gjyshe'], correct: 1 }
+        ];
+
+        // Utility functions
+        function playPronunciation(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.7;
+                utterance.lang = 'sq-AL';
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function updateNavigation() {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-red-100', 'text-red-700');
+                btn.classList.add('text-gray-600');
+            });
+            
+            const activeBtn = document.querySelector(`[onclick="showSection('${currentSection}')"]`);
+            if (activeBtn && activeBtn.classList.contains('nav-btn')) {
+                activeBtn.classList.add('bg-red-100', 'text-red-700');
+                activeBtn.classList.remove('text-gray-600');
+            }
+        }
+
+        // Section rendering functions
+        function renderHomeSection() {
+            return `
+                <div class="space-y-8 fade-in">
+                    <div class="text-center">
+                        <h1 class="text-4xl font-bold text-red-700 mb-4">Learn Albanian</h1>
+                        <p class="text-xl text-gray-600 mb-8">Master the beautiful language of Albania</p>
+                        <div class="bg-gradient-to-r from-red-600 to-black p-6 rounded-lg text-white hover-scale">
+                            <h2 class="text-2xl font-semibold mb-2">Mirë se vini! (Welcome!)</h2>
+                            <p class="text-red-100">Start your Albanian language journey today</p>
+                            <div class="text-4xl mt-3">🇦🇱</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <button onclick="showSection('alphabet')" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all text-left group hover-scale">
+                            <div class="w-8 h-8 text-red-500 mb-3">📚</div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Alphabet</h3>
+                            <p class="text-gray-600">Learn the Albanian alphabet with pronunciation guides</p>
+                        </button>
+
+                        <button onclick="showSection('vocabulary')" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all text-left group hover-scale">
+                            <div class="w-8 h-8 text-yellow-500 mb-3">⭐</div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Vocabulary</h3>
+                            <p class="text-gray-600">Build your word bank with themed vocabulary sets</p>
+                        </button>
+
+                        <button onclick="showSection('games')" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all text-left group hover-scale">
+                            <div class="w-8 h-8 text-green-500 mb-3">🏆</div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Games</h3>
+                            <p class="text-gray-600">Practice with fun interactive games and challenges</p>
+                        </button>
+
+                        <button onclick="showSection('quiz')" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all text-left group hover-scale">
+                            <div class="w-8 h-8 text-blue-500 mb-3">🔊</div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Quiz</h3>
+                            <p class="text-gray-600">Test your knowledge with interactive quizzes</p>
+                        </button>
+
+                        <button onclick="showSection('progress')" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all text-left group hover-scale">
+                            <div class="w-8 h-8 text-purple-500 mb-3">⭐</div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Progress</h3>
+                            <p class="text-gray-600">Track your learning journey and achievements</p>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Quick Facts About Albanian</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div class="p-4 bg-red-50 rounded-lg">
+                                <div class="text-2xl mb-2">👥</div>
+                                <div class="font-medium">7+ Million Speakers</div>
+                                <div class="text-sm text-gray-600">Worldwide</div>
+                            </div>
+                            <div class="p-4 bg-red-50 rounded-lg">
+                                <div class="text-2xl mb-2">🌍</div>
+                                <div class="font-medium">Official Language</div>
+                                <div class="text-sm text-gray-600">Albania & Kosovo</div>
+                            </div>
+                            <div class="p-4 bg-red-50 rounded-lg">
+                                <div class="text-2xl mb-2">📖</div>
+                                <div class="font-medium">36 Letters</div>
+                                <div class="text-sm text-gray-600">Latin Alphabet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAlphabetSection() {
+            return `
+                <div class="space-y-6 fade-in">
+                    <h2 class="text-2xl font-bold text-center text-red-700 mb-6">Albanian Alphabet</h2>
+                    <div class="text-center mb-6">
+                        <p class="text-gray-600">The Albanian alphabet has 36 letters. Tap any letter to hear its pronunciation!</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${albanianAlphabet.map((item, index) => `
+                            <div onclick="playPronunciation('${item.audio}')" class="bg-white rounded-lg shadow-md p-4 border-l-4 border-red-500 hover-scale cursor-pointer">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-3xl font-bold text-red-700">${item.letter}</div>
+                                    <div class="text-right">
+                                        <div class="text-sm text-gray-600">${item.pronunciation}</div>
+                                        <div class="text-xs text-gray-500 mt-1">[${item.audio}]</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-700">${item.example}</div>
+                                <div class="mt-2 flex items-center text-xs text-blue-600">
+                                    <span>🔊 Tap to hear</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderVocabularySection() {
+            return `
+                <div class="space-y-6 fade-in">
+                    <h2 class="text-2xl font-bold text-center text-red-700 mb-6">Vocabulary Builder</h2>
+                    ${Object.entries(vocabularySets).map(([category, words]) => `
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4 capitalize flex items-center">
+                                ${category}
+                                <span class="ml-2 text-sm bg-red-100 text-red-600 px-2 py-1 rounded">
+                                    ${words.length} words
+                                </span>
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                ${words.map((word, index) => `
+                                    <div onclick="playPronunciation('${word.albanian}')" class="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors cursor-pointer">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-medium text-red-700">${word.albanian}</span>
+                                            <span class="text-gray-400">🔊</span>
+                                        </div>
+                                        <div class="text-sm text-gray-600">${word.english}</div>
+                                        <div class="text-xs text-gray-500 mt-1">[${word.pronunciation}]</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderGamesSection() {
+            return `
+                <div class="space-y-6 fade-in">
+                    <h2 class="text-2xl font-bold text-center text-red-700 mb-6">Interactive Games</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                        <button onclick="startMemoryGame()" class="bg-gradient-to-r from-red-500 to-red-600 text-white p-6 rounded-lg hover:from-red-600 hover:to-red-700 transition-all hover-scale">
+                            <h3 class="text-xl font-semibold mb-2">Memory Match</h3>
+                            <p class="text-red-100">Match Albanian words with English translations</p>
+                            <div class="text-3xl mt-3">🧠</div>
+                        </button>
+
+                        <button onclick="startDragDropGame()" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all hover-scale">
+                            <h3 class="text-xl font-semibold mb-2">Drag & Match</h3>
+                            <p class="text-blue-100">Drag words to their correct translations</p>
+                            <div class="text-3xl mt-3">🎯</div>
+                        </button>
+                    </div>
+
+                    <div id="game-area" class="hidden">
+                        <!-- Game content will be inserted here -->
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQuizSection() {
+            const question = quizQuestions[currentQuiz];
+            return `
+                <div class="space-y-6 fade-in">
+                    <h2 class="text-2xl font-bold text-center text-red-700 mb-6">Quick Quiz</h2>
+                    <div class="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto">
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="text-sm text-gray-500">
+                                    Question ${currentQuiz + 1} of ${quizQuestions.length}
+                                </div>
+                                <div class="text-sm font-medium text-red-600">
+                                    Score: ${quizScore}/${currentQuiz + (showResult ? 1 : 0)}
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-red-600 h-2 rounded-full transition-all duration-300" style="width: ${((currentQuiz + (showResult ? 1 : 0)) / quizQuestions.length) * 100}%"></div>
+                            </div>
+                            <div class="text-lg font-medium text-gray-800 mt-4">
+                                ${question.question}
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            ${question.options.map((option, index) => `
+                                <button 
+                                    onclick="handleQuizAnswer(${index})" 
+                                    ${showResult ? 'disabled' : ''}
+                                    class="w-full p-3 text-left rounded-lg border transition-colors quiz-option-${index} ${
+                                        showResult
+                                            ? index === question.correct
+                                                ? 'bg-green-100 border-green-500 text-green-700'
+                                                : index === selectedAnswer && index !== question.correct
+                                                ? 'bg-red-100 border-red-500 text-red-700'
+                                                : 'bg-gray-100 border-gray-300'
+                                            : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                                    }"
+                                >
+                                    ${option}
+                                    ${showResult && index === question.correct ? ' ✓' : ''}
+                                    ${showResult && index === selectedAnswer && index !== question.correct ? ' ✗' : ''}
+                                </button>
+                            `).join('')}
+                        </div>
+
+                        <div class="mt-6 text-center" id="quiz-controls">
+                            ${showResult ? `
+                                ${currentQuiz < quizQuestions.length - 1 ? `
+                                    <button onclick="nextQuestion()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                        Next Question
+                                    </button>
+                                ` : `
+                                    <div>
+                                        <p class="text-xl font-bold text-gray-800 mb-4">
+                                            Quiz Complete! Final Score: ${quizScore}/${quizQuestions.length}
+                                        </p>
+                                        <div class="text-center mb-4">
+                                            ${quizScore === quizQuestions.length ? 
+                                                '<div class="text-green-600">🎉 Perfect! Shumë mirë! (Very good!)</div>' :
+                                                quizScore >= quizQuestions.length * 0.7 ?
+                                                '<div class="text-blue-600">👏 Great job! Mirë! (Good!)</div>' :
+                                                '<div class="text-orange-600">👍 Keep practicing! Vazhdoni! (Continue!)</div>'
+                                            }
+                                        </div>
+                                        <button onclick="restartQuiz()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                            Restart Quiz
+                                        </button>
+                                    </div>
+                                `}
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProgressSection() {
+            const totalWords = Object.values(vocabularySets).reduce((acc, set) => acc + set.length, 0);
+            return `
+                <div class="space-y-6 fade-in">
+                    <h2 class="text-2xl font-bold text-center text-red-700 mb-6">Your Progress</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white rounded-lg shadow-md p-6 text-center hover-scale">
+                            <div class="text-2xl mb-2">📚</div>
+                            <h3 class="font-semibold text-gray-800">Alphabet</h3>
+                            <p class="text-2xl font-bold text-red-600">${albanianAlphabet.length}/36</p>
+                            <p class="text-sm text-gray-600">Letters available</p>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-md p-6 text-center hover-scale">
+                            <div class="text-2xl mb-2">⭐</div>
+                            <h3 class="font-semibold text-gray-800">Vocabulary</h3>
+                            <p class="text-2xl font-bold text-yellow-600">${totalWords}</p>
+                            <p class="text-sm text-gray-600">Words to learn</p>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-md p-6 text-center hover-scale">
+                            <div class="text-2xl mb-2">🏆</div>
+                            <h3 class="font-semibold text-gray-800">Games</h3>
+                            <p class="text-2xl font-bold text-green-600">${gameScore}</p>
+                            <p class="text-sm text-gray-600">Current score</p>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-md p-6 text-center hover-scale">
+                            <div class="text-2xl mb-2">🔊</div>
+                            <h3 class="font-semibold text-gray-800">Pronunciation</h3>
+                            <p class="text-2xl font-bold text-blue-600">Ready</p>
+                            <p class="text-sm text-gray-600">Audio available</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Learning Categories</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            ${Object.entries(vocabularySets).map(([category, words]) => `
+                                <div class="text-center p-3 bg-gray-50 rounded-lg">
+                                    <div class="text-2xl mb-2">
+                                        ${category === 'family' ? '👨‍👩‍👧‍👦' : 
+                                          category === 'greetings' ? '👋' :
+                                          category === 'colors' ? '🌈' : '🔢'}
+                                    </div>
+                                    <div class="font-medium capitalize">${category}</div>
+                                    <div class="text-sm text-gray-600">${words.length} words</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Daily Motivation</h3>
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">🌟</div>
+                            <p class="text-lg text-gray-700 mb-2">"Mos u dorëzo!" (Don't give up!)</p>
+                            <p class="text-sm text-gray-600">Every word you learn brings you closer to fluency</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Game functions
+        function startMemoryGame() {
+            const words = vocabularySets.family.slice(0, 6);
+            memoryCards = [];
+            words.forEach((word, index) => {
+                memoryCards.push({ id: index * 2, type: 'albanian', text: word.albanian, pair: index, matched: false });
+                memoryCards.push({ id: index * 2 + 1, type: 'english', text: word.english, pair: index, matched: false });
+            });
+            memoryCards = memoryCards.sort(() => Math.random() - 0.5);
+            flippedCards = [];
+            gameScore = 0;
+            
+            document.getElementById('game-area').classList.remove('hidden');
+            document.getElementById('game-area').innerHTML = `
+                <div class="text-center mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Memory Match Game</h3>
+                    <p class="text-gray-600 mb-4">Match Albanian words with their English translations</p>
+                    <div class="text-lg font-bold text-red-700">Score: <span id="game-score">${gameScore}</span></div>
+                </div>
+                
+                <div class="grid grid-cols-3 md:grid-cols-4 gap-3 max-w-2xl mx-auto" id="memory-grid">
+                    ${memoryCards.map(card => `
+                        <div onclick="flipCard(${card.id})" class="game-card aspect-square rounded-lg cursor-pointer transition-all duration-300 bg-gray-200 hover:bg-gray-300" id="card-${card.id}">
+                            <span class="text-2xl">🇦🇱</span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="text-center mt-6">
+                    <button onclick="startMemoryGame()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors mr-4">
+                        🔄 New Game
+                    </button>
+                    <button onclick="backToGames()" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        🏠 Back to Games
+                    </button>
+                </div>
+            `;
+        }
+
+        function flipCard(cardId) {
+            if (flippedCards.length === 2) return;
+            if (flippedCards.includes(cardId)) return;
+            
+            const card = memoryCards.find(c => c.id === cardId);
+            const cardElement = document.getElementById(`card-${cardId}`);
+            
+            flippedCards.push(cardId);
+            cardElement.innerHTML = `<span class="text-sm font-medium">${card.text}</span>`;
+            cardElement.className = card.type === 'albanian' ? 
+                'game-card aspect-square rounded-lg cursor-pointer transition-all duration-300 bg-red-500 text-white' :
+                'game-card aspect-square rounded-lg cursor-pointer transition-all duration-300 bg-blue-500 text-white';
+            
+            if (flippedCards.length === 2) {
+                const card1 = memoryCards.find(c => c.id === flippedCards[0]);
+                const card2 = memoryCards.find(c => c.id === flippedCards[1]);
+                
+                if (card1.pair === card2.pair) {
+                    setTimeout(() => {
+                        memoryCards.forEach(card => {
+                            if (card.pair === card1.pair) card.matched = true;
+                        });
+                        document.getElementById(`card-${flippedCards[0]}`).style.opacity = '0.5';
+                        document.getElementById(`card-${flippedCards[1]}`).style.opacity = '0.5';
+                        flippedCards = [];
+                        gameScore += 10;
+                        document.getElementById('game-score').textContent = gameScore;
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        document.getElementById(`card-${flippedCards[0]}`).innerHTML = '<span class="text-2xl">🇦🇱</span>';
+                        document.getElementById(`card-${flippedCards[0]}`).className = 'game-card aspect-square rounded-lg cursor-pointer transition-all duration-300 bg-gray-200 hover:bg-gray-300';
+                        document.getElementById(`card-${flippedCards[1]}`).innerHTML = '<span class="text-2xl">🇦🇱</span>';
+                        document.getElementById(`card-${flippedCards[1]}`).className = 'game-card aspect-square rounded-lg cursor-pointer transition-all duration-300 bg-gray-200 hover:bg-gray-300';
+                        flippedCards = [];
+                    }, 1500);
+                }
+            }
+        }
+
+        function startDragDropGame() {
+            const words = vocabularySets.colors.slice(0, 5);
+            dragDropGame = words.map((word, index) => ({
+                id: index,
+                albanian: word.albanian,
+                english: word.english,
+                matched: false
+            }));
+            gameScore = 0;
+            
+            document.getElementById('game-area').classList.remove('hidden');
+            document.getElementById('game-area').innerHTML = `
+                <div class="text-center mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Drag & Match</h3>
+                    <p class="text-gray-600 mb-4">Drag Albanian words to their English translations</p>
+                    <div class="text-lg font-bold text-red-700">Score: <span id="game-score">${gameScore}</span></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-gray-700">Albanian Words</h4>
+                        <div id="drag-items">
+                            ${dragDropGame.map(item => `
+                                <div draggable="true" ondragstart="handleDragStart(event, ${item.id})" class="drag-item bg-red-500 text-white p-3 rounded-lg" id="drag-${item.id}">
+                                    ${item.albanian}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-semibold text-gray-700">English Translations</h4>
+                        ${dragDropGame.map(item => `
+                            <div ondrop="handleDrop(event, ${item.id})" ondragover="allowDrop(event)" class="drop-zone p-3 rounded-lg border-2 border-dashed border-gray-300" id="drop-${item.id}">
+                                ${item.english}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="text-center mt-6">
+                    <button onclick="startDragDropGame()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mr-4">
+                        🔄 New Game
+                    </button>
+                    <button onclick="backToGames()" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        🏠 Back to Games
+                    </button>
+                </div>
+            `;
+        }
+
+        function handleDragStart(event, itemId) {
+            event.dataTransfer.setData("text/plain", itemId);
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDrop(event, targetId) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            
+            const draggedId = parseInt(event.dataTransfer.getData("text/plain"));
+            const draggedItem = dragDropGame.find(item => item.id === draggedId);
+            const targetItem = dragDropGame.find(item => item.id === targetId);
+            
+            if (draggedItem && targetItem && draggedItem.albanian === targetItem.albanian) {
+                document.getElementById(`drag-${draggedId}`).style.display = 'none';
+                document.getElementById(`drop-${targetId}`).className = 'p-3 rounded-lg bg-green-100 border-2 border-green-500 text-green-700';
+                document.getElementById(`drop-${targetId}`).innerHTML = targetItem.english + ' ✓';
+                gameScore += 15;
+                document.getElementById('game-score').textContent = gameScore;
+            }
+        }
+
+        function backToGames() {
+            document.getElementById('game-area').classList.add('hidden');
+        }
+
+        // Quiz functions
+        function handleQuizAnswer(answerIndex) {
+            if (showResult) return;
+            
+            selectedAnswer = answerIndex;
+            showResult = true;
+            
+            if (answerIndex === quizQuestions[currentQuiz].correct) {
+                quizScore++;
+            }
+            
+            showSection('quiz');
+        }
+
+        function nextQuestion() {
+            if (currentQuiz < quizQuestions.length - 1) {
+                currentQuiz++;
+                selectedAnswer = null;
+                showResult = false;
+                showSection('quiz');
+            }
+        }
+
+        function restartQuiz() {
+            currentQuiz = 0;
+            selectedAnswer = null;
+            showResult = false;
+            quizScore = 0;
+            showSection('quiz');
+        }
+
+        // Main navigation function
+        function showSection(section) {
+            currentSection = section;
+            const mainContent = document.getElementById('main-content');
+            
+            let content = '';
+            switch(section) {
+                case 'home':
+                    content = renderHomeSection();
+                    break;
+                case 'alphabet':
+                    content = renderAlphabetSection();
+                    break;
+                case 'vocabulary':
+                    content = renderVocabularySection();
+                    break;
+                case 'games':
+                    content = renderGamesSection();
+                    break;
+                case 'quiz':
+                    content = renderQuizSection();
+                    break;
+                case 'progress':
+                    content = renderProgressSection();
+                    break;
+                default:
+                    content = renderHomeSection();
+            }
+            
+            mainContent.innerHTML = content;
+            updateNavigation();
+            
+            // Update mobile dropdown
+            const mobileSelect = document.querySelector('.mobile-nav select');
+            if (mobileSelect) {
+                mobileSelect.value = section;
+            }
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            showSection('home');
+        });
+    </script>
+</body>
+</html>
